@@ -16,7 +16,7 @@
 
 // globals BAD
 bool clientConnected = false;
-bool serverConnected = false;
+bool serverConnected = false; // currently unused variable
 boolean doServerConnect = false;
 BLEAdvertisedDevice *peripheral_device;
 
@@ -149,7 +149,7 @@ class ClientCallback : public BLEClientCallbacks
 
     void onDisconnect(BLEClient *pclient)
     {
-        serverConnected = false;
+        //serverConnected = false;
         Serial.println("A sensor disconnected.");
     }
 };
@@ -193,7 +193,6 @@ template <typename _UUID_Generator_Type> class Bluetooth
         pAdvertising->setScanResponse(false);
         pAdvertising->setMinPreferred(0x0);
         pAdvertising->start();
-        BLEDevice::init("A0");
         pBLEScan = BLEDevice::getScan();
         pBLEScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());
         pBLEScan->setInterval(SCAN_INTERVAL);
