@@ -28,7 +28,7 @@ typedef struct __attribute__((__packed__)) BluetoothTransmissionData
     float altitude;
 } BluetoothTransmissionData_t;
 
-std::queue<BluetoothTransmissionData_t *> received_packets;
+std::queue<BluetoothTransmissionData_t> received_packets;
 
 typedef union BluetoothTransmissionDataConverter_u {
 
@@ -206,7 +206,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
     {
         // verrry dangerous :)
         auto data = (BluetoothTransmissionData_t *)pData; 
-        received_packets.push(data);
+        received_packets.push(*data);
         Serial.print("Notify data from peripheral: ");
         // print entire recieved packet by byte
         for (int i = 0; i < length; i++)
