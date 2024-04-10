@@ -61,7 +61,7 @@ void loop()
         if (received_packets.size() > 0)
         {
             // admittedly cursed
-            bluetooth.callback_class->setData(* received_packets.front());
+            bluetooth.callback_class->setData(received_packets.front());
             received_packets.pop();
             bluetooth.sendData();
         }
