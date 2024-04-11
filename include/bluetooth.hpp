@@ -132,7 +132,7 @@ class AdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
         {
             peripheral_device = new BLEAdvertisedDevice(advertisedDevice);
             doServerConnect = true;
-            Serial.println("Peripheral found.");
+            Serial.println("Sensor found.");
         }
         else
         {
@@ -204,10 +204,9 @@ template <typename _UUID_Generator_Type> class Bluetooth
     static void clientOnNotify(BLERemoteCharacteristic *pCharacteristic, uint8_t *pData, size_t length,
                            bool isNotify)
     {
-        // verrry dangerous :)
         auto data = (BluetoothTransmissionData_t *)pData; 
         received_packets.push(*data);
-        Serial.print("Notify data from peripheral: ");
+        Serial.print("Received data from sensor: ");
         // print entire recieved packet by byte
         for (int i = 0; i < length; i++)
         {
@@ -302,6 +301,11 @@ template <typename _UUID_Generator_Type> class Bluetooth
     bool clientIsConnected()
     {
         return clientConnected;
+    }
+
+    bool hasSensors()
+    {
+        return clients.size() > 0;
     }
 };
 

@@ -12,10 +12,14 @@ Bluetooth<uuids> bluetooth;
 volatile SemaphoreHandle_t disconnect_semaphore;
 volatile SemaphoreHandle_t scan_semaphore;
 volatile SemaphoreHandle_t send_semaphore;
+volatile SemaphoreHandle_t receive_body_semaphore;
 volatile int8_t DISCON_ISR = 0;
 volatile int8_t SCAN_ISR = 0;
 volatile int8_t SEND_ISR = 0;
+volatile int8_t RECEIVE_BODY_ISR = 0;
 portMUX_TYPE isr_mux = portMUX_INITIALIZER_UNLOCKED;
+
+void receive_body();
 
 void ARDUINO_ISR_ATTR set_semaphore()
 {
@@ -46,6 +50,15 @@ void ARDUINO_ISR_ATTR set_semaphore()
     {
         SEND_ISR++;
     }
+    if (RECEIVE_BODY_ISR == 2)
+    {
+        xSemaphoreGiveFromISR(receive_body_semaphore, NULL);
+
+    }
+    else
+    {
+        RECEIVE_BODY_ISR++;
+    }
     taskEXIT_CRITICAL_ISR(&isr_mux);
 }
 
@@ -62,6 +75,7 @@ void setup()
     disconnect_semaphore = xSemaphoreCreateBinary();
     scan_semaphore = xSemaphoreCreateBinary();
     send_semaphore = xSemaphoreCreateBinary();
+    receive_body_semaphore = xSemaphoreCreateBinary();
     setup_timer(set_semaphore, 250, 80);
 }
 
@@ -93,5 +107,10 @@ void loop()
     if (xSemaphoreTake(disconnect_semaphore, 0) == pdTRUE )
     {
         bluetooth.removeOldServers();
+    }
+    if (xSemaphoreTake(receive_body_semaphore, 0) == pdTRUE)
+    {
+        // receiving code here
+        receive_body();
     }
 }
