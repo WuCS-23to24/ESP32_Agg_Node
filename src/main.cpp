@@ -4,6 +4,7 @@
 
 #include "auxiliary.h"
 #include "bluetooth.hpp"
+#include "body.hpp"
 #include "hardware_timer.hpp"
 
 
@@ -18,8 +19,6 @@ volatile int8_t SCAN_ISR = 0;
 volatile int8_t SEND_ISR = 0;
 volatile int8_t RECEIVE_BODY_ISR = 0;
 portMUX_TYPE isr_mux = portMUX_INITIALIZER_UNLOCKED;
-
-void receive_body();
 
 void ARDUINO_ISR_ATTR set_semaphore()
 {
@@ -100,7 +99,8 @@ void loop()
             digitalWrite(LED_BUILTIN, LOW);
         }
     }
-    if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE && bluetooth.clientIsConnected())
+    //if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE && bluetooth.clientIsConnected())
+    if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE)
     {
         bluetooth.scan();
     }

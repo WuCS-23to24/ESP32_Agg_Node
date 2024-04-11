@@ -23,9 +23,9 @@ BLEAdvertisedDevice *peripheral_device;
 typedef struct __attribute__((__packed__)) BluetoothTransmissionData
 {
     float temp_data;
-    float latitude;
+    /*float latitude;
     float longitude;
-    float altitude;
+    float altitude;*/
 } BluetoothTransmissionData_t;
 
 std::queue<BluetoothTransmissionData_t> received_packets;
@@ -34,6 +34,7 @@ typedef union BluetoothTransmissionDataConverter_u {
 
     BluetoothTransmissionData_t message;
     uint8_t bytes[sizeof(BluetoothTransmissionData)];
+    uint32_t frame;
 
 } BluetoothTransmissionDataConverter_t;
 
@@ -66,8 +67,8 @@ class CharacteristicCallbacks : public BLECharacteristicCallbacks
     void onRead(BLECharacteristic *pCharacteristic, esp_ble_gatts_cb_param_t *param)
     {
         std::stringstream str_data("");
-        str_data << "TEMP: " << _data.temp_data << " LAT: " << _data.latitude << " LONG: " << _data.longitude
-                 << " ALT: " << _data.altitude;
+        /*str_data << "TEMP: " << _data.temp_data << " LAT: " << _data.latitude << " LONG: " << _data.longitude
+                 << " ALT: " << _data.altitude;*/
 
         Serial.println(str_data.str().c_str());
 
@@ -110,7 +111,7 @@ class ServerCallbacks : public BLEServerCallbacks
     {
         clientConnected = false;
         Serial.println("Repeater disconnected.\n");
-        BLEDevice::startAdvertising();
+        //BLEDevice::startAdvertising();
     }
 };
 
@@ -192,7 +193,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
         pAdvertising->addServiceUUID(_uuid_gen_struct.get_service_uuid());
         pAdvertising->setScanResponse(false);
         pAdvertising->setMinPreferred(0x0);
-        pAdvertising->start();
+        //pAdvertising->start();
         pBLEScan = BLEDevice::getScan();
         pBLEScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());
         pBLEScan->setInterval(SCAN_INTERVAL);
