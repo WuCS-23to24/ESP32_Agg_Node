@@ -19,6 +19,7 @@ volatile int8_t SCAN_ISR = 0;
 volatile int8_t SEND_ISR = 0;
 volatile int8_t RECEIVE_BODY_ISR = 0;
 portMUX_TYPE isr_mux = portMUX_INITIALIZER_UNLOCKED;
+TaskHandle_t body_task_handle = NULL;
 
 void ARDUINO_ISR_ATTR set_semaphore()
 {
@@ -76,13 +77,15 @@ void setup()
     send_semaphore = xSemaphoreCreateBinary();
     receive_body_semaphore = xSemaphoreCreateBinary();
     setup_timer(set_semaphore, 250, 80);
+    xTaskCreatePinnedToCore(receive_body, "receive_body", 4096, NULL, 19, &body_task_handle, 0); // priority at least 19
 }
 
 void loop()
 {
+    //printf("BLE code running on core %d\n", xPortGetCoreID());
     if (xSemaphoreTake(send_semaphore, 0) == pdTRUE)
     {
-        printf("Send semaphore ready...\n");
+        //printf("Send semaphore ready...\n");
         if (bluetooth.clientIsConnected()) // only worry about finding sensors after repeater is connected
         {
             digitalWrite(LED_BUILTIN, HIGH);
@@ -108,9 +111,9 @@ void loop()
     {
         bluetooth.removeOldServers();
     }
-    if (xSemaphoreTake(receive_body_semaphore, 0) == pdTRUE)
+    /*if (xSemaphoreTake(receive_body_semaphore, 0) == pdTRUE)
     {
         // receiving code here
         receive_body();
-    }
+    }*/
 }

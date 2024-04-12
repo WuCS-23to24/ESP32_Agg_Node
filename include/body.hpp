@@ -7,7 +7,7 @@ const int SYMBOL_HALF_MS = 5;
 
 uint16_t msToHalfSymbolsEstimated(unsigned long time_ms);
 
-uint32_t receive_body()
+void receive_body(void *arg)
 {
     unsigned long t_start_ms = 0;
     unsigned long t_end_ms = 0;
@@ -28,6 +28,7 @@ uint32_t receive_body()
 
     while(1)
     {
+        //printf("Body code running on core %d\n", xPortGetCoreID());
         // shift and sum previous samples
         sample_sum = 0;
         for (int i = 0; i < 15; i++)
@@ -115,7 +116,6 @@ uint32_t receive_body()
                 {
                     Serial.printf("Frame successfully decoded. Data value: 0x%08X.\n", decode_data);
                     decode_bit_position = 0;
-                    return decode_data;
                 }
             }
             
