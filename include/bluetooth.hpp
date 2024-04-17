@@ -193,7 +193,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
         pAdvertising->addServiceUUID(_uuid_gen_struct.get_service_uuid());
         pAdvertising->setScanResponse(false);
         pAdvertising->setMinPreferred(0x0);
-        //pAdvertising->start();
+        pAdvertising->start();
         pBLEScan = BLEDevice::getScan();
         pBLEScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());
         pBLEScan->setInterval(SCAN_INTERVAL);

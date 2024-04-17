@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <cstdint>
+#include "esp_task_wdt.h"
 
 const int F_CARRIER = 10000;
 const int SYMBOL_HALF_MS = 5;
@@ -9,6 +10,7 @@ uint16_t msToHalfSymbolsEstimated(unsigned long time_ms);
 
 void receive_body(void *arg)
 {
+    esp_task_wdt_init(UINT32_MAX, false); // make task_wdt wait as long as possible, until we come up with better solution
     unsigned long t_start_ms = 0;
     unsigned long t_end_ms = 0;
     unsigned long t_delta_ms = 0;
@@ -28,7 +30,7 @@ void receive_body(void *arg)
 
     while(1)
     {
-        //printf("Body code running on core %d\n", xPortGetCoreID());
+
         // shift and sum previous samples
         sample_sum = 0;
         for (int i = 0; i < 15; i++)

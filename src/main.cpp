@@ -20,6 +20,9 @@ volatile int8_t SEND_ISR = 0;
 volatile int8_t RECEIVE_BODY_ISR = 0;
 portMUX_TYPE isr_mux = portMUX_INITIALIZER_UNLOCKED;
 TaskHandle_t body_task_handle = NULL;
+TaskHandle_t main_task_handle = NULL;
+
+void main_loop(void *arg);
 
 void ARDUINO_ISR_ATTR set_semaphore()
 {
@@ -78,42 +81,44 @@ void setup()
     receive_body_semaphore = xSemaphoreCreateBinary();
     setup_timer(set_semaphore, 250, 80);
     xTaskCreatePinnedToCore(receive_body, "receive_body", 4096, NULL, 19, &body_task_handle, 0); // priority at least 19
+    xTaskCreatePinnedToCore(main_loop, "main_loop", 4096*4, NULL, 19, &main_task_handle, 1); // priority at least 19
+}
+
+void main_loop(void *arg) // don't use default loop() because it has low priority
+{
+    while (1)
+    {
+        if (xSemaphoreTake(send_semaphore, 0) == pdTRUE)
+        {
+            if (bluetooth.clientIsConnected())
+            {
+                digitalWrite(LED_BUILTIN, HIGH);
+                if (received_packets.size() > 0)
+                {
+                    bluetooth.callback_class->setData(received_packets.front());
+                    received_packets.pop();
+                    bluetooth.sendData();
+                }
+                bluetooth.tryConnectToServer();
+            }
+            else
+            {
+                digitalWrite(LED_BUILTIN, LOW);
+                // put acoustic send here
+            }
+        }
+        if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE && bluetooth.clientIsConnected())
+        {
+            bluetooth.scan();
+        }
+        if (xSemaphoreTake(disconnect_semaphore, 0) == pdTRUE )
+        {
+            bluetooth.removeOldServers();
+        }
+        //vTaskDelay(1 / portTICK_RATE_MS); // delay 1 ms
+    }
 }
 
 void loop()
 {
-    //printf("BLE code running on core %d\n", xPortGetCoreID());
-    if (xSemaphoreTake(send_semaphore, 0) == pdTRUE)
-    {
-        //printf("Send semaphore ready...\n");
-        if (bluetooth.clientIsConnected()) // only worry about finding sensors after repeater is connected
-        {
-            digitalWrite(LED_BUILTIN, HIGH);
-            if (received_packets.size() > 0)
-            {
-                bluetooth.callback_class->setData(received_packets.front());
-                received_packets.pop();
-                bluetooth.sendData();
-            }
-            bluetooth.tryConnectToServer();
-        }
-        else
-        {
-            digitalWrite(LED_BUILTIN, LOW);
-        }
-    }
-    //if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE && bluetooth.clientIsConnected())
-    if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE)
-    {
-        bluetooth.scan();
-    }
-    if (xSemaphoreTake(disconnect_semaphore, 0) == pdTRUE )
-    {
-        bluetooth.removeOldServers();
-    }
-    /*if (xSemaphoreTake(receive_body_semaphore, 0) == pdTRUE)
-    {
-        // receiving code here
-        receive_body();
-    }*/
 }
