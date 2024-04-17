@@ -7,6 +7,7 @@
 #include <BLEUtils.h>
 #include <sstream>
 #include <queue>
+#include "data_packet.h"
 
 #define RSSI_CONNECT -80
 #define RSSI_DISCONNECT -90
@@ -20,28 +21,20 @@ bool serverConnected = false; // currently unused variable
 boolean doServerConnect = false;
 BLEAdvertisedDevice *peripheral_device;
 
-typedef struct __attribute__((__packed__)) BluetoothTransmissionData
-{
-    float temp_data;
-    /*float latitude;
-    float longitude;
-    float altitude;*/
-} BluetoothTransmissionData_t;
+typedef union TransmissionDataConverter_u {
 
-std::queue<BluetoothTransmissionData_t> received_packets;
+    TransmissionData_t message;
+    uint8_t bytes[sizeof(TransmissionData)];
 
-typedef union BluetoothTransmissionDataConverter_u {
+} TransmissionDataConverter_t;
 
-    BluetoothTransmissionData_t message;
-    uint8_t bytes[sizeof(BluetoothTransmissionData)];
-    uint32_t frame;
+std::queue<TransmissionData_t> received_packets;
 
-} BluetoothTransmissionDataConverter_t;
 
 class CharacteristicCallbacks : public BLECharacteristicCallbacks
 {
   private:
-    BluetoothTransmissionData _data;
+    TransmissionData_t _data;
 
   public:
     CharacteristicCallbacks()
@@ -67,8 +60,8 @@ class CharacteristicCallbacks : public BLECharacteristicCallbacks
     void onRead(BLECharacteristic *pCharacteristic, esp_ble_gatts_cb_param_t *param)
     {
         std::stringstream str_data("");
-        /*str_data << "TEMP: " << _data.temp_data << " LAT: " << _data.latitude << " LONG: " << _data.longitude
-                 << " ALT: " << _data.altitude;*/
+        str_data << "TEMP: " << _data.temp_data << " LAT: " << _data.latitude << " LONG: " << _data.longitude
+                 << " ALT: " << _data.altitude;
 
         Serial.println(str_data.str().c_str());
 
@@ -86,12 +79,12 @@ class CharacteristicCallbacks : public BLECharacteristicCallbacks
         printf("STATUS\n");
     }
 
-    BluetoothTransmissionData getData()
+    TransmissionData_t getData()
     {
         return _data;
     }
 
-    void setData(BluetoothTransmissionData data)
+    void setData(TransmissionData_t data)
     {
         _data = data;
     }
@@ -205,7 +198,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
     static void clientOnNotify(BLERemoteCharacteristic *pCharacteristic, uint8_t *pData, size_t length,
                            bool isNotify)
     {
-        auto data = (BluetoothTransmissionData_t *)pData; 
+        auto data = (TransmissionData_t *)pData; 
         received_packets.push(*data);
         Serial.print("Received data from sensor: ");
         // print entire recieved packet by byte
@@ -221,9 +214,9 @@ template <typename _UUID_Generator_Type> class Bluetooth
     {
         if (clientConnected)
         {
-            BluetoothTransmissionDataConverter_t converter;
+            TransmissionDataConverter_t converter;
             converter.message = callback_class->getData();
-            pCharacteristic->setValue(converter.bytes, sizeof(BluetoothTransmissionData));
+            pCharacteristic->setValue(converter.bytes, sizeof(TransmissionData));
             pCharacteristic->notify();
         }
     }
