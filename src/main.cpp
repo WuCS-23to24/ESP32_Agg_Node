@@ -7,10 +7,12 @@
 #include "body.hpp"
 #include "hardware_timer.hpp"
 #include "data_packet.h"
+#include "acoustic.hpp"
 
 
 uuids UUID_generator;
 Bluetooth<uuids> bluetooth;
+Acoustic acoustic;
 volatile SemaphoreHandle_t disconnect_semaphore;
 volatile SemaphoreHandle_t scan_semaphore;
 volatile SemaphoreHandle_t send_semaphore;
@@ -70,6 +72,7 @@ void setup()
 {
     Serial.begin(115200);
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(A0, OUTPUT); // for acoustic out
     //UUID_generator.initialize_random_values();
     //UUID_generator.generate_hashes();
     Serial.printf("SERVICE UUID - %s\n", UUID_generator.get_service_uuid());
@@ -105,7 +108,8 @@ void main_loop(void *arg) // don't use default loop() because it has low priorit
             else
             {
                 digitalWrite(LED_BUILTIN, LOW);
-                // put acoustic send here
+                acoustic.setData(bluetooth.callback_class->getData());
+                acoustic.transmitFrame();
             }
         }
         if (xSemaphoreTake(scan_semaphore, 0) == pdTRUE && bluetooth.clientIsConnected())
