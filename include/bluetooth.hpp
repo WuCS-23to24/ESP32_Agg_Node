@@ -20,6 +20,7 @@ bool clientConnected = false;
 bool serverConnected = false; // currently unused variable
 boolean doServerConnect = false;
 BLEAdvertisedDevice *peripheral_device;
+std::vector<BLEClient *> clients; // one BLEClient object per connected server
 
 class CharacteristicCallbacks : public BLECharacteristicCallbacks
 {
@@ -61,12 +62,12 @@ class CharacteristicCallbacks : public BLECharacteristicCallbacks
 
     void onNotify(BLECharacteristic *pCharacteristic)
     {
-        printf("NOTIFED\n");
+        //printf("NOTIFED\n");
     }
 
     void onStatus(BLECharacteristic *pCharacteristic, Status s, uint32_t code)
     {
-        printf("STATUS\n");
+        //printf("STATUS\n");
     }
 
     TransmissionData_t getData()
@@ -94,7 +95,9 @@ class ServerCallbacks : public BLEServerCallbacks
     {
         clientConnected = false;
         Serial.println("Repeater disconnected.\n");
-        //BLEDevice::startAdvertising();
+        clients[0]->disconnect();
+        BLEDevice::startAdvertising();
+        //clients.pop_back();
     }
 };
 
@@ -147,7 +150,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
     BLEAdvertising *pAdvertising;
     _UUID_Generator_Type _uuid_gen_struct;
     BLEScan *pBLEScan;
-    std::vector<BLEClient *> clients; // one BLEClient object per connected server
+    //std::vector<BLEClient *> clients; // one BLEClient object per connected server
     //std::queue<TransmissionData_t *> received_packets;
 
   public:
@@ -190,16 +193,19 @@ template <typename _UUID_Generator_Type> class Bluetooth
                            bool isNotify)
     {
         TransmissionData_t *data = new TransmissionData_t;
-        *data = *(TransmissionData_t *)pData; // copy notified data to new location. Will be deleted before popped off queue.
+        //*data = *(TransmissionData_t *)pData; // copy notified data to new location. Will be deleted before popped off queue.
+        float temp = *((float *)pData);
+        data->temp_data = temp; 
         received_packets.push(data);
-        Serial.print("Received data from sensor: ");
+        /*Serial.print("Received data from sensor: ");
         // print entire recieved packet by byte
         for (int i = 0; i < length; i++)
         {
             Serial.print(*(pData + i), HEX);
         }
         Serial.print(". Length: ");
-        Serial.println(length);
+        Serial.println(length);*/
+        printf("Bluetooth packet received. Temp: %.2fºF\n", data->temp_data);
     }
 
     void sendData()
@@ -208,7 +214,10 @@ template <typename _UUID_Generator_Type> class Bluetooth
         {
             TransmissionDataConverter_t converter;
             converter.message = callback_class->getData();
-            pCharacteristic->setValue(converter.bytes, sizeof(TransmissionData));
+            auto temp = new float;
+            *temp= callback_class->getData().temp_data;
+            pCharacteristic->setValue((uint8_t *)temp, 4);
+            //pCharacteristic->setValue(converter.bytes, sizeof(TransmissionData));
             pCharacteristic->notify();
         }
     }

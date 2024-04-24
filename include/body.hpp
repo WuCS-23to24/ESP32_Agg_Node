@@ -118,7 +118,7 @@ void receive_body(void *arg)
                 }
                 else
                 {
-                    Serial.printf("Frame successfully decoded. Data value: 0x%08X.\n", decode_data);
+                    Serial.printf("Body as wire frame successfully decoded. Temp: %.2fºF\n", *(float*)&decode_data);
                     decode_bit_position = 0;
                     auto packet = new TransmissionData_t;
                     packet->temp_data = decode_data;
