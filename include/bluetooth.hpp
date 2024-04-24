@@ -21,16 +21,6 @@ bool serverConnected = false; // currently unused variable
 boolean doServerConnect = false;
 BLEAdvertisedDevice *peripheral_device;
 
-typedef union TransmissionDataConverter_u {
-
-    TransmissionData_t message;
-    uint8_t bytes[sizeof(TransmissionData)];
-
-} TransmissionDataConverter_t;
-
-std::queue<TransmissionData_t> received_packets;
-
-
 class CharacteristicCallbacks : public BLECharacteristicCallbacks
 {
   private:
@@ -158,10 +148,10 @@ template <typename _UUID_Generator_Type> class Bluetooth
     _UUID_Generator_Type _uuid_gen_struct;
     BLEScan *pBLEScan;
     std::vector<BLEClient *> clients; // one BLEClient object per connected server
+    //std::queue<TransmissionData_t *> received_packets;
 
   public:
     CharacteristicCallbacks *callback_class;
-
     Bluetooth()
     {
     }
@@ -169,6 +159,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
     Bluetooth(_UUID_Generator_Type uuid_gen_struct) : _uuid_gen_struct(uuid_gen_struct)
     {
         callback_class = new CharacteristicCallbacks();
+        //this->received_packets = received_packets;
 
         BLEDevice::init("A0");
         pServer = BLEDevice::createServer();
@@ -198,8 +189,9 @@ template <typename _UUID_Generator_Type> class Bluetooth
     static void clientOnNotify(BLERemoteCharacteristic *pCharacteristic, uint8_t *pData, size_t length,
                            bool isNotify)
     {
-        auto data = (TransmissionData_t *)pData; 
-        received_packets.push(*data);
+        TransmissionData_t *data = new TransmissionData_t;
+        *data = *(TransmissionData_t *)pData; // copy notified data to new location. Will be deleted before popped off queue.
+        received_packets.push(data);
         Serial.print("Received data from sensor: ");
         // print entire recieved packet by byte
         for (int i = 0; i < length; i++)

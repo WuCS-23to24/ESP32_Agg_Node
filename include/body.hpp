@@ -1,10 +1,12 @@
 #include <Arduino.h>
 #include <cstdint>
+#include <queue>
 #include "esp_task_wdt.h"
+
+#include "data_packet.h"
 
 const int F_CARRIER = 10000;
 const int SYMBOL_HALF_MS = 5;
-
 
 uint16_t msToHalfSymbolsEstimated(unsigned long time_ms);
 
@@ -118,6 +120,9 @@ void receive_body(void *arg)
                 {
                     Serial.printf("Frame successfully decoded. Data value: 0x%08X.\n", decode_data);
                     decode_bit_position = 0;
+                    auto packet = new TransmissionData_t;
+                    packet->temp_data = decode_data;
+                    received_packets.push(packet);
                 }
             }
             
@@ -136,11 +141,5 @@ uint16_t msToHalfSymbolsEstimated(unsigned long time_ms)
     {
         half_symbols++;
     }
-    return half_symbols;
+return half_symbols;
 }
-
-
-
-
-
-

@@ -12,6 +12,7 @@
 
 uuids UUID_generator;
 Bluetooth<uuids> bluetooth;
+std::queue<TransmissionData_t *> received_packets; // shared everywhere, declared extern in data_packet.h
 Acoustic acoustic;
 volatile SemaphoreHandle_t disconnect_semaphore;
 volatile SemaphoreHandle_t scan_semaphore;
@@ -99,7 +100,8 @@ void main_loop(void *arg) // don't use default loop() because it has low priorit
                 digitalWrite(LED_BUILTIN, HIGH);
                 if (received_packets.size() > 0)
                 {
-                    bluetooth.callback_class->setData(received_packets.front());
+                    bluetooth.callback_class->setData(*received_packets.front());
+                    delete received_packets.front(); // free previously allocated TransmissionData pointer
                     received_packets.pop();
                     bluetooth.sendData();
                 }
