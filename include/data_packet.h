@@ -19,4 +19,5 @@ typedef union TransmissionDataConverter_u {
 } TransmissionDataConverter_t;
 
 extern std::queue<TransmissionData_t *> received_packets;
+
 #endif

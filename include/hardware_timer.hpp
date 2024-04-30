@@ -8,9 +8,10 @@ hw_timer_t *timer = NULL;
 
 void ARDUINO_ISR_ATTR check_gps_data()
 {
-    ets_printf("ISR TRIGGERED\n");
+    //ets_printf("ISR TRIGGERED\n");
 }
 
+// Prepare hardware timer with interrupt
 void setup_timer(void (*func)(void) = check_gps_data, int time_ms = 250, int div = 80)
 {
     timer = timerBegin(0, div, true);              // timer 0, div 80

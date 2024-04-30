@@ -6,7 +6,6 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <sstream>
-#include <queue>
 #include "data_packet.h"
 
 #define RSSI_CONNECT -80
@@ -15,12 +14,11 @@
 #define SCAN_WINDOW 100
 #define SCAN_INTERVAL 500
 
-// globals BAD
-bool clientConnected = false;
-bool serverConnected = false; // currently unused variable
-boolean doServerConnect = false;
+bool clientConnected = false; // indicates whether repeater is connected
+boolean doServerConnect = false; // flag to enable trying to connect to a server
 BLEAdvertisedDevice *peripheral_device;
 
+// Callbacks for server's main characteristic between aggregator and repeater
 class CharacteristicCallbacks : public BLECharacteristicCallbacks
 {
   private:
@@ -80,6 +78,7 @@ class CharacteristicCallbacks : public BLECharacteristicCallbacks
     }
 };
 
+// Callbacks for overall server between aggregator and repeater
 class ServerCallbacks : public BLEServerCallbacks
 {
   public:
@@ -94,7 +93,7 @@ class ServerCallbacks : public BLEServerCallbacks
     {
         clientConnected = false;
         Serial.println("Repeater disconnected.\n");
-        //BLEDevice::startAdvertising();
+        BLEDevice::startAdvertising();
     }
 };
 
@@ -118,9 +117,6 @@ class AdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
             doServerConnect = true;
             Serial.println("Sensor found.");
         }
-        else
-        {
-        }
     }
 };
 
@@ -133,11 +129,11 @@ class ClientCallback : public BLEClientCallbacks
 
     void onDisconnect(BLEClient *pclient)
     {
-        //serverConnected = false;
         Serial.println("A sensor disconnected.");
     }
 };
 
+// main class for handling BLE 
 template <typename _UUID_Generator_Type> class Bluetooth
 {
   private:
@@ -148,7 +144,6 @@ template <typename _UUID_Generator_Type> class Bluetooth
     _UUID_Generator_Type _uuid_gen_struct;
     BLEScan *pBLEScan;
     std::vector<BLEClient *> clients; // one BLEClient object per connected server
-    //std::queue<TransmissionData_t *> received_packets;
 
   public:
     CharacteristicCallbacks *callback_class;
@@ -158,26 +153,25 @@ template <typename _UUID_Generator_Type> class Bluetooth
 
     Bluetooth(_UUID_Generator_Type uuid_gen_struct) : _uuid_gen_struct(uuid_gen_struct)
     {
+        // Setup for server side (aggregator to repeater)
         callback_class = new CharacteristicCallbacks();
-        //this->received_packets = received_packets;
-
         BLEDevice::init("A0");
         pServer = BLEDevice::createServer();
         pServer->setCallbacks(new ServerCallbacks);
         pService = pServer->createService(_uuid_gen_struct.get_service_uuid());
         pCharacteristic = pService->createCharacteristic(
             _uuid_gen_struct.get_characteristic_uuid(),
-            BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 
         pCharacteristic->setCallbacks(callback_class);
         pCharacteristic->setValue("Agg Node");
         pService->start();
-
         pAdvertising = pServer->getAdvertising();
         pAdvertising->addServiceUUID(_uuid_gen_struct.get_service_uuid());
         pAdvertising->setScanResponse(false);
         pAdvertising->setMinPreferred(0x0);
         pAdvertising->start();
+
+        // Setup for client side (sensor to aggregator)
         pBLEScan = BLEDevice::getScan();
         pBLEScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());
         pBLEScan->setInterval(SCAN_INTERVAL);
@@ -186,12 +180,13 @@ template <typename _UUID_Generator_Type> class Bluetooth
 
     }
 
+    // Run whenever a message is received from a sensor
     static void clientOnNotify(BLERemoteCharacteristic *pCharacteristic, uint8_t *pData, size_t length,
                            bool isNotify)
     {
         TransmissionData_t *data = new TransmissionData_t;
         *data = *(TransmissionData_t *)pData; // copy notified data to new location. Will be deleted before popped off queue.
-        received_packets.push(data);
+        received_packets.push(data); // add to queue for upstream transmission
         Serial.print("Received data from sensor: ");
         // print entire recieved packet by byte
         for (int i = 0; i < length; i++)
@@ -202,6 +197,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
         Serial.println(length);
     }
 
+    // Send a message using notify to the repeater
     void sendData()
     {
         if (clientConnected)
@@ -251,7 +247,6 @@ template <typename _UUID_Generator_Type> class Bluetooth
             clients.push_back(pClient);
             // prep to receive notifications from peripheral
             pRemoteCharacteristic->registerForNotify(clientOnNotify);
-
             serverConnected = true;
             return true;
         }
@@ -259,14 +254,16 @@ template <typename _UUID_Generator_Type> class Bluetooth
         return false;
     }
 
+    // Scan for available sensors
     void scan()
     {
         pBLEScan->start(SCAN_DURATION, false);
     }
     
+    // Disconnect servers from the list that are no longer connected or are already disconnected
     void removeOldServers()
     {
-        // one client object per connected server. So each represents a server. (Confusing.)
+        // one client object per connected server. Each BLEClient object represents a connection to a server.
         BLEClient *client;
         for (int i = 0; i < clients.size(); i++)
         {

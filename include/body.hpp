@@ -12,7 +12,8 @@ uint16_t msToHalfSymbolsEstimated(unsigned long time_ms);
 
 void receive_body(void *arg)
 {
-    esp_task_wdt_init(UINT32_MAX, false); // make task_wdt wait as long as possible, until we come up with better solution
+    // make task_wdt wait as long as possible to effectively disable (not ideal)
+    esp_task_wdt_init(UINT32_MAX, false); 
     unsigned long t_start_ms = 0;
     unsigned long t_end_ms = 0;
     unsigned long t_delta_ms = 0;
@@ -62,10 +63,8 @@ void receive_body(void *arg)
             t_end_ms = millis();
             t_delta_ms = t_end_ms - t_start_ms;
             t_start_ms = t_end_ms;
-            //Serial.printf("rising (%lu ms).\n", t_delta_ms);
             
             half_symbols = msToHalfSymbolsEstimated(t_delta_ms);
-            //Serial.printf("rising (%i half symbols).\n", half_symbols);
             
             if (start_flag)
             {
@@ -89,10 +88,8 @@ void receive_body(void *arg)
             t_end_ms = millis();
             t_delta_ms = t_end_ms - t_start_ms;
             t_start_ms = t_end_ms;
-            //Serial.printf("falling (%lu ms).\n", t_delta_ms);
             
             half_symbols = msToHalfSymbolsEstimated(t_delta_ms);
-            //Serial.printf("falling (%i half symbols).\n", half_symbols);
             
             if (half_symbols == 1 && start_flag)
             {
@@ -125,7 +122,6 @@ void receive_body(void *arg)
                     received_packets.push(packet);
                 }
             }
-            
         }
     }
 }
