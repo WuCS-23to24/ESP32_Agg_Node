@@ -161,6 +161,7 @@ template <typename _UUID_Generator_Type> class Bluetooth
         pService = pServer->createService(_uuid_gen_struct.get_service_uuid());
         pCharacteristic = pService->createCharacteristic(
             _uuid_gen_struct.get_characteristic_uuid(),
+            BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 
         pCharacteristic->setCallbacks(callback_class);
         pCharacteristic->setValue("Agg Node");
@@ -247,7 +248,6 @@ template <typename _UUID_Generator_Type> class Bluetooth
             clients.push_back(pClient);
             // prep to receive notifications from peripheral
             pRemoteCharacteristic->registerForNotify(clientOnNotify);
-            serverConnected = true;
             return true;
         }
 
