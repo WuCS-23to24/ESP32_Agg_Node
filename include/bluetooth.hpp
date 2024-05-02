@@ -196,6 +196,8 @@ template <typename _UUID_Generator_Type> class Bluetooth
         }
         Serial.print(". Length: ");
         Serial.println(length);
+
+		delete data;
     }
 
     // Send a message using notify to the repeater
